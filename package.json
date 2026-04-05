@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "Nakijktool Reactie op Zienswijze – HBO Rechten",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0"
+    "@google/genai": "^0.7.0"
   }
 }

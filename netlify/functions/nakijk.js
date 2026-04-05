@@ -1,4 +1,4 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenAI } = require('@google/genai');
 
 const SYSTEM_PROMPT = `Je bent een juridische docent die tentamens nakijkt voor het vak "Reactie op Zienswijze" op een HBO Rechten opleiding.
 
@@ -100,17 +100,16 @@ ${ha || '(niet ingevuld)'}
 SUBARGUMENTEN:
 ${sa || '(niet ingevuld)'}`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1000,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: `Beoordeel dit studentantwoord:\n\n${studentInput}` }],
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-pro-latest',
+    systemInstruction: SYSTEM_PROMPT,
+    contents: [{ role: 'user', parts: [{ text: `Beoordeel dit studentantwoord:\n\n${studentInput}` }] }],
+    config: { maxOutputTokens: 1000 },
   });
 
-  const text = message.content.map(i => i.text || '').join('');
-  const clean = text.replace(/```json|```/g, '').trim();
+  const clean = response.text.replace(/```json|```/g, '').trim();
   const result = JSON.parse(clean);
 
   return {
