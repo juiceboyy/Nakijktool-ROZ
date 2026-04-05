@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nakijktool – Reactie op Zienswijze</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+    color: white; padding: 24px 32px;
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header p { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+
+  .score-banner {
+    background: white; border-radius: 12px; padding: 20px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px;
+  }
+  .score-banner .total { font-size: 2.2rem; font-weight: 800; color: #2b6cb0; }
+  .score-banner .max { font-size: 1rem; color: #718096; }
+  .progress-bar { flex: 1; margin: 0 32px; height: 14px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; background: linear-gradient(90deg, #48bb78, #2b6cb0); }
+  .grade-label { font-size: 1rem; font-weight: 700; }
+  .verdict { font-size: 0.85rem; margin-top: 4px; color: #4a5568; }
+
+  .tab-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 8px 16px; border-radius: 8px; border: 2px solid #e2e8f0; background: white; cursor: pointer; font-size: 0.88rem; font-weight: 600; color: #4a5568; transition: all 0.2s; }
+  .tab.active { background: #2b6cb0; color: white; border-color: #2b6cb0; }
+  .tab:hover:not(.active) { border-color: #2b6cb0; color: #2b6cb0; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+  .card { background: white; border-radius: 12px; padding: 20px 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 4px solid #2b6cb0; }
+  .card.full-width { grid-column: 1 / -1; }
+  .card h2 { font-size: 1rem; font-weight: 700; color: #1a365d; margin-bottom: 4px; }
+  .card .card-max { font-size: 0.8rem; color: #718096; margin-bottom: 14px; }
+
+  .rubric-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f0f4f8; }
+  .rubric-row:last-child { border-bottom: none; }
+  .rubric-label { font-size: 0.88rem; flex: 1; line-height: 1.5; color: #2d3748; }
+  .rubric-label small { display: block; color: #718096; font-size: 0.78rem; margin-top: 2px; }
+  .score-input-wrap { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .score-input { width: 54px; padding: 5px 8px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; font-weight: 700; text-align: center; color: #2b6cb0; transition: border-color 0.2s; }
+  .score-input:focus { outline: none; border-color: #2b6cb0; }
+  .score-input.over { border-color: #e53e3e; }
+  .score-max { font-size: 0.82rem; color: #a0aec0; white-space: nowrap; }
+  .card-total { margin-top: 14px; padding-top: 10px; border-top: 2px solid #ebf4ff; font-size: 0.9rem; font-weight: 700; color: #2b6cb0; text-align: right; }
+  .feedback-area { width: 100%; margin-top: 10px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; resize: vertical; min-height: 70px; color: #2d3748; font-family: inherit; }
+  .feedback-area:focus { outline: none; border-color: #2b6cb0; }
+  .feedback-label { font-size: 0.78rem; color: #718096; margin-top: 10px; margin-bottom: 4px; }
+  .error { color: #e53e3e; font-size: 0.8rem; margin-top: 2px; display: none; }
+
+  /* Twee referentieboxen naast elkaar */
+  .ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 700px) { .ref-grid { grid-template-columns: 1fr; } }
+
+  .ref-box { border-left: 4px solid #2b6cb0; border-radius: 8px; padding: 14px 16px; }
+  .ref-box.blue { background: #ebf8ff; border-left-color: #2b6cb0; }
+  .ref-box.green { background: #f0fff4; border-left-color: #38a169; }
+  .ref-box h3 { font-size: 0.88rem; font-weight: 700; margin-bottom: 10px; }
+  .ref-box.blue h3 { color: #1a365d; }
+  .ref-box.green h3 { color: #1c4532; }
+  .ref-box p, .ref-box li { font-size: 0.82rem; color: #2d3748; line-height: 1.6; }
+  .ref-box ul { margin-left: 16px; }
+  .ref-box .arg-block { margin-bottom: 8px; }
+  .ref-box strong { color: #2b6cb0; }
+  .ref-box.green strong { color: #276749; }
+
+  /* AI sectie */
+  .ai-section { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 4px solid #38a169; }
+  .ai-section h2 { font-size: 1rem; font-weight: 700; color: #1a365d; margin-bottom: 6px; }
+  .ai-section p.sub { font-size: 0.83rem; color: #718096; margin-bottom: 16px; }
+
+  .input-group { margin-bottom: 14px; }
+  .input-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #2d3748; margin-bottom: 6px; }
+  .input-group textarea { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.88rem; resize: vertical; min-height: 90px; font-family: inherit; color: #2d3748; transition: border-color 0.2s; }
+  .input-group textarea:focus { outline: none; border-color: #38a169; }
+  .input-group input[type=text] { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.88rem; font-family: inherit; color: #2d3748; transition: border-color 0.2s; }
+  .input-group input[type=text]:focus { outline: none; border-color: #38a169; }
+
+  .btn-ai { background: linear-gradient(135deg, #38a169, #2f855a); color: white; border: none; border-radius: 8px; padding: 12px 28px; font-size: 0.95rem; cursor: pointer; font-weight: 700; transition: opacity 0.2s; display: flex; align-items: center; gap: 8px; }
+  .btn-ai:hover { opacity: 0.9; }
+  .btn-ai:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-reset { background: #e53e3e; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-size: 0.9rem; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+  .btn-reset:hover { background: #c53030; }
+
+  .ai-result { margin-top: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #c6f6d5; display: none; }
+  .ai-result-header { background: #38a169; color: white; padding: 12px 18px; font-weight: 700; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+  .ai-result-body { padding: 18px; background: #f0fff4; }
+
+  .criteria-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 600px) { .criteria-grid { grid-template-columns: 1fr; } }
+
+  .criterion-card { background: white; border-radius: 8px; padding: 12px 14px; border-left: 4px solid #e2e8f0; }
+  .criterion-card.pass { border-left-color: #38a169; }
+  .criterion-card.partial { border-left-color: #ed8936; }
+  .criterion-card.fail { border-left-color: #e53e3e; }
+  .criterion-card .crit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .criterion-card .crit-name { font-size: 0.82rem; font-weight: 700; color: #2d3748; }
+  .criterion-card .crit-score { font-size: 0.9rem; font-weight: 800; }
+  .criterion-card.pass .crit-score { color: #38a169; }
+  .criterion-card.partial .crit-score { color: #ed8936; }
+  .criterion-card.fail .crit-score { color: #e53e3e; }
+  .criterion-card .crit-feedback { font-size: 0.8rem; color: #4a5568; line-height: 1.5; }
+
+  .ai-totalscore { display: flex; align-items: center; gap: 16px; padding: 14px 18px; background: white; border-radius: 8px; margin-bottom: 16px; border: 2px solid #38a169; }
+  .ai-totalscore .pts { font-size: 2rem; font-weight: 800; color: #38a169; }
+  .ai-totalscore .pts-label { font-size: 0.85rem; color: #718096; }
+  .ai-totalscore .general-fb { font-size: 0.85rem; color: #2d3748; line-height: 1.6; flex: 1; }
+
+  .spinner { display: none; align-items: center; gap: 10px; color: #38a169; font-size: 0.9rem; margin-top: 12px; }
+  .spinner.active { display: flex; }
+  .spin { width: 20px; height: 20px; border: 3px solid #c6f6d5; border-top-color: #38a169; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .apply-btn { background: #2b6cb0; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-size: 0.88rem; cursor: pointer; font-weight: 600; transition: background 0.2s; margin-top: 12px; }
+  .apply-btn:hover { background: #1a4e8a; }
+
+  .warning-box { background: #fffbeb; border: 1px solid #f6ad55; border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #744210; margin-bottom: 14px; }
+
+  .divider { margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏛️ Nakijktool – Reactie op Zienswijze</h1>
+  <p>Casus: Windpark Zuidervaart | Vak: Reactie op Zienswijze (HBO Recht)</p>
+</header>
+
+<div class="container">
+
+  <!-- Twee referentieboxen naast elkaar -->
+  <div class="ref-grid">
+
+    <div class="ref-box blue">
+      <h3>⚖️ Argumenten Benali (zienswijze)</h3>
+      <div class="arg-block">
+        <ul>
+          <li><strong>HA 1: Aantasting woon- en leefklimaat</strong>
+            <ul><li>SA: geluidsoverlast van de turbines bij rustig verblijf in de tuin</li></ul>
+          </li>
+          <li><strong>HA 2: Aantasting woongenot</strong>
+            <ul><li>SA: slagschaduw in de woonkamer door bewegende wieken</li></ul>
+          </li>
+          <li><strong>HA 3: Schending vertrouwensbeginsel (ABBB)</strong>
+            <ul><li>SA: burgemeester verklaarde 10 jaar geleden dat deze locatie "niet wenselijk" was — Benali heeft daarop vertrouwd</li></ul>
+          </li>
+        </ul>
+      </div>
+      <p style="margin-top:8px; font-size:0.78rem; color:#2c5282;">⚠️ HA 1 en HA 2 moeten <em>apart</em> worden benoemd. Bij HA 3 telt slechts <em>één</em> SA mee.</p>
+    </div>
+
+    <div class="ref-box green">
+      <h3>🏛️ Modelantwoord jurist gemeente (weerlegging)</h3>
+      <div class="arg-block">
+        <p style="margin-bottom:6px;"><strong>Type:</strong> Meervoudig onderschikkend</p>
+        <p style="margin-bottom:8px;"><strong>Standpunt:</strong> De zienswijze van de heer Benali is ongegrond; het windpark Zuidervaart kan doorgang vinden.</p>
+        <ul>
+          <li><strong>HA 1:</strong> Geluidsoverlast valt binnen wettelijke normen
+            <ul>
+              <li>SA: Akoestisch onderzoek toont naleving 47 dB Lden-norm (Activiteitenbesluit)</li>
+              <li>SA: 600 m afstand biedt voldoende geluidsbuffer</li>
+              <li>SA: Maatwerkvoorschriften mogelijk bij dreigend overschrijding</li>
+            </ul>
+          </li>
+          <li><strong>HA 2:</strong> Slagschaduw is beheersbaar en voldoet aan de norm
+            <ul>
+              <li>SA: Norm max. 17 uur/jaar / 20 min./dag</li>
+              <li>SA: Automatische stilstandsvoorziening borgt naleving</li>
+              <li>SA: Slagschaduwstudie toont dat locatie Benali onder de norm valt</li>
+            </ul>
+          </li>
+          <li><strong>HA 3:</strong> Vertrouwensbeginsel (ABBB) niet geschonden
+            <ul>
+              <li>SA: Uitlating burgemeester ≠ toezegging bevoegd gezag (B&amp;W)</li>
+              <li>SA: 10 jaar geleden; geen rechtens te honoreren verwachting</li>
+              <li>SA: Beleid wezenlijk gewijzigd (Klimaatakkoord, RES)</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Score banner -->
+  <div class="score-banner">
+    <div>
+      <div class="total" id="totalScore">0</div>
+      <div class="max">/ 55 punten</div>
+      <div class="verdict" id="verdict">—</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div style="text-align:right;">
+      <div class="grade-label" id="gradeLabel">—</div>
+      <div style="font-size:0.85rem; color:#718096;">Cijfer (1–10)</div>
+      <br>
+      <button class="btn-reset" onclick="resetAll()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="showTab('brief', this)">✉️ Brief (45 pt)</div>
+    <div class="tab" onclick="showTab('args', this)">🤖 Argumentatiestructuur AI-nakijk (10 pt)</div>
+  </div>
+
+  <!-- PANEL BRIEF -->
+  <div class="panel active" id="panel-brief">
+    <div class="grid">
+
+      <div class="card">
+        <h2>A – Inleiding</h2>
+        <div class="card-max">Max. 5 punten</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Inleidende én afrondende zin + datum
+            <small>Brief begint/eindigt contextgebonden; datum vermeld</small>
+          </div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="a1" min="0" max="2" value="0" oninput="update('a1',2)">
+            <span class="score-max">/ 2</span>
+          </div>
+        </div>
+        <div class="error" id="err-a1">Max 2</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Drie hoofdargumenten correct geïntroduceerd
+            <small>HA 1 geluid, HA 2 slagschaduw, HA 3 vertrouwensbeginsel — alle drie apart vermeld</small>
+          </div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="a2" min="0" max="3" value="0" oninput="update('a2',3)">
+            <span class="score-max">/ 3</span>
+          </div>
+        </div>
+        <div class="error" id="err-a2">Max 3</div>
+        <div class="card-total">Deeltotaal A: <span id="tot-a">0</span> / 5</div>
+        <div class="feedback-label">Feedback:</div>
+        <textarea class="feedback-area" id="fb-a" placeholder="Toelichting voor de student..."></textarea>
+      </div>
+
+      <div class="card">
+        <h2>B – Kern</h2>
+        <div class="card-max">Max. 10 punten</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Kern klopt met argumentatiestructuur</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="b1" min="0" max="2" value="0" oninput="update('b1',2)">
+            <span class="score-max">/ 2</span>
+          </div>
+        </div>
+        <div class="error" id="err-b1">Max 2</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Kern juist samengevat in drie hoofdargumenten
+            <small>HA 1 en HA 2 moeten apart worden behandeld</small>
+          </div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="b2" min="0" max="3" value="0" oninput="update('b2',3)">
+            <span class="score-max">/ 3</span>
+          </div>
+        </div>
+        <div class="error" id="err-b2">Max 3</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Uitgewerkt in drie subargumenten (per HA)
+            <small>Bij HA 3: maximaal één SA vereist</small>
+          </div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="b3" min="0" max="3" value="0" oninput="update('b3',3)">
+            <span class="score-max">/ 3</span>
+          </div>
+        </div>
+        <div class="error" id="err-b3">Max 3</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Logische uitleg / redenering</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="b4" min="0" max="2" value="0" oninput="update('b4',2)">
+            <span class="score-max">/ 2</span>
+          </div>
+        </div>
+        <div class="error" id="err-b4">Max 2</div>
+        <div class="card-total">Deeltotaal B: <span id="tot-b">0</span> / 10</div>
+        <div class="feedback-label">Feedback:</div>
+        <textarea class="feedback-area" id="fb-b" placeholder="Toelichting voor de student..."></textarea>
+      </div>
+
+      <div class="card">
+        <h2>C – Conclusie</h2>
+        <div class="card-max">Max. 5 punten</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Samenvatting drie hoofdargumenten</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="c1" min="0" max="3" value="0" oninput="update('c1',3)">
+            <span class="score-max">/ 3</span>
+          </div>
+        </div>
+        <div class="error" id="err-c1">Max 3</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Contactmogelijkheid vermeld</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="c2" min="0" max="2" value="0" oninput="update('c2',2)">
+            <span class="score-max">/ 2</span>
+          </div>
+        </div>
+        <div class="error" id="err-c2">Max 2</div>
+        <div class="card-total">Deeltotaal C: <span id="tot-c">0</span> / 5</div>
+        <div class="feedback-label">Feedback:</div>
+        <textarea class="feedback-area" id="fb-c" placeholder="Toelichting voor de student..."></textarea>
+      </div>
+
+      <div class="card">
+        <h2>D – Schrijfvaardigheid</h2>
+        <div class="card-max">Max. 15 punten</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Taal, schrijffouten & leesbaarheid
+            <small>15 = vrijwel foutloos · 10 = enkele fouten · 5 = veel fouten · 0 = onbegrijpelijk</small>
+          </div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="d1" min="0" max="15" value="0" oninput="update('d1',15)">
+            <span class="score-max">/ 15</span>
+          </div>
+        </div>
+        <div class="error" id="err-d1">Max 15</div>
+        <div class="card-total">Deeltotaal D: <span id="tot-d">0</span> / 15</div>
+        <div class="feedback-label">Feedback:</div>
+        <textarea class="feedback-area" id="fb-d" placeholder="Benoem specifieke fouten of stijlpunten..."></textarea>
+      </div>
+
+      <div class="card">
+        <h2>E – Structuur</h2>
+        <div class="card-max">Max. 7 punten</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Alinea's en witregels correct gebruikt</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="e1" min="0" max="2" value="0" oninput="update('e1',2)">
+            <span class="score-max">/ 2</span>
+          </div>
+        </div>
+        <div class="error" id="err-e1">Max 2</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Kopjes aanwezig en passend</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="e2" min="0" max="3" value="0" oninput="update('e2',3)">
+            <span class="score-max">/ 3</span>
+          </div>
+        </div>
+        <div class="error" id="err-e2">Max 3</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Structuuraanduiders gebruikt
+            <small>Ten eerste / daarnaast / tot slot / concluderend etc.</small>
+          </div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="e3" min="0" max="2" value="0" oninput="update('e3',2)">
+            <span class="score-max">/ 2</span>
+          </div>
+        </div>
+        <div class="error" id="err-e3">Max 2</div>
+        <div class="card-total">Deeltotaal E: <span id="tot-e">0</span> / 7</div>
+        <div class="feedback-label">Feedback:</div>
+        <textarea class="feedback-area" id="fb-e" placeholder="Toelichting voor de student..."></textarea>
+      </div>
+
+      <div class="card">
+        <h2>F – Briefconventies</h2>
+        <div class="card-max">Max. 3 punten</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Afzender, adressering, plaats + datum, kenmerk, betreft</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="f1" min="0" max="1" value="0" oninput="update('f1',1)">
+            <span class="score-max">/ 1</span>
+          </div>
+        </div>
+        <div class="error" id="err-f1">Max 1</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Aanhef, inleiding, kern, conclusie aanwezig</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="f2" min="0" max="1" value="0" oninput="update('f2',1)">
+            <span class="score-max">/ 1</span>
+          </div>
+        </div>
+        <div class="error" id="err-f2">Max 1</div>
+        <div class="rubric-row">
+          <div class="rubric-label">Slotformule, ondertekening, functie/afdeling</div>
+          <div class="score-input-wrap">
+            <input type="number" class="score-input" id="f3" min="0" max="1" value="0" oninput="update('f3',1)">
+            <span class="score-max">/ 1</span>
+          </div>
+        </div>
+        <div class="error" id="err-f3">Max 1</div>
+        <div class="card-total">Deeltotaal F: <span id="tot-f">0</span> / 3</div>
+        <div class="feedback-label">Feedback:</div>
+        <textarea class="feedback-area" id="fb-f" placeholder="Toelichting voor de student..."></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PANEL ARGS (AI) -->
+  <div class="panel" id="panel-args">
+    <div class="ai-section">
+      <h2>🤖 AI-nakijk: Argumentatiestructuur</h2>
+      <p class="sub">Voer het antwoord van de student in. De AI beoordeelt op alle vier criteria en geeft per criterium specifieke feedback. Controleer daarna het voorstel en pas evt. aan.</p>
+
+      <div class="warning-box">
+        ⚠️ De student levert de argumentatiestructuur in als tabel met pijlen (↑). Typ of plak de inhoud van de cellen hieronder over — type structuur, standpunt, hoofdargumenten en subargumenten.
+      </div>
+
+      <div class="input-group">
+        <label>Type argumentatiestructuur (zoals ingevuld door student)</label>
+        <input type="text" id="inp-type" placeholder="bijv. meervoudig nevenschikkend / onderschikkend / ...">
+      </div>
+      <div class="input-group">
+        <label>Standpunt jurist (zoals ingevuld door student)</label>
+        <input type="text" id="inp-standpunt" placeholder="bijv. Het project Windpark Zuidervaart gaat wel door.">
+      </div>
+      <div class="input-group">
+        <label>Hoofdargumenten — HA 1, HA 2, HA 3 (elk op een nieuwe regel)</label>
+        <textarea id="inp-ha" placeholder="HA 1: het vertrouwensbeginsel is niet geschonden.&#10;HA 2: er komt geen last van slagschaduw.&#10;HA 3: het woon- en leefklimaat wordt niet aangetast."></textarea>
+      </div>
+      <div class="input-group">
+        <label>Subargumenten — geef aan bij welk HA (elk op een nieuwe regel)</label>
+        <textarea id="inp-sa" placeholder="SA bij HA 1: burgermeester had nooit een duidelijke afspraak gemaakt.&#10;SA bij HA 2: windmolens staan ver genoeg en worden gedraaid zodat u geen last krijgt van schaduw.&#10;SA bij HA 3: er ontstaat geen geluidsoverlast door nieuwe methodes."></textarea>
+      </div>
+
+      <button class="btn-ai" onclick="runAI()" id="aiBtn">
+        <span>🤖</span> Nakijken met AI
+      </button>
+      <div class="spinner" id="spinner">
+        <div class="spin"></div>
+        <span>AI beoordeelt het antwoord...</span>
+      </div>
+
+      <div class="ai-result" id="aiResult">
+        <div class="ai-result-header">
+          <span>✅ AI-beoordeling argumentatiestructuur</span>
+          <span id="ai-score-header">0 / 10</span>
+        </div>
+        <div class="ai-result-body">
+          <div class="ai-totalscore">
+            <div>
+              <div class="pts" id="ai-pts">0</div>
+              <div class="pts-label">/ 10 punten</div>
+            </div>
+            <div class="general-fb" id="ai-general-fb">—</div>
+          </div>
+          <div class="criteria-grid" id="criteria-grid"></div>
+          <button class="apply-btn" onclick="applyAIScore()">✔ Overnemen naar scorebord</button>
+        </div>
+      </div>
+
+      <!-- Handmatige velden -->
+      <div class="divider">
+        <div class="card" style="border-top-color:#38a169; box-shadow:none; border:1px solid #e2e8f0;">
+          <h2>Handmatige score argumentatiestructuur</h2>
+          <div class="card-max">Wordt automatisch gevuld na AI-nakijk — altijd handmatig aanpasbaar</div>
+
+          <div class="rubric-row">
+            <div class="rubric-label">Meervoudig onderschikkend benoemd
+              <small>2pt = correct · 1pt = meervoudig maar verkeerd soort (bijv. nevenschikkend) · 0pt = fout/afwezig</small>
+            </div>
+            <div class="score-input-wrap">
+              <input type="number" class="score-input" id="g1" min="0" max="2" value="0" oninput="update('g1',2)">
+              <span class="score-max">/ 2</span>
+            </div>
+          </div>
+          <div class="error" id="err-g1">Max 2</div>
+
+          <div class="rubric-row">
+            <div class="rubric-label">Juist standpunt jurist geformuleerd
+              <small>Inhoudelijk correct (informele formulering OK als strekking klopt)</small>
+            </div>
+            <div class="score-input-wrap">
+              <input type="number" class="score-input" id="g2" min="0" max="1" value="0" oninput="update('g2',1)">
+              <span class="score-max">/ 1</span>
+            </div>
+          </div>
+          <div class="error" id="err-g2">Max 1</div>
+
+          <div class="rubric-row">
+            <div class="rubric-label">Drie juiste hoofdargumenten (HA 1, HA 2 en HA 3 apart)
+              <small>1pt per correct HA · volgorde maakt niet uit · geluid en slagschaduw moeten wel <em>apart</em> worden benoemd · parafrasen OK</small>
+            </div>
+            <div class="score-input-wrap">
+              <input type="number" class="score-input" id="g3" min="0" max="3" value="0" oninput="update('g3',3)">
+              <span class="score-max">/ 3</span>
+            </div>
+          </div>
+          <div class="error" id="err-g3">Max 3</div>
+
+          <div class="rubric-row">
+            <div class="rubric-label">Subargumenten inhoudelijk juist
+              <small>HA 1 & HA 2: minimaal één SA per HA · HA 3: slechts één SA vereist · 1pt per HA met juist SA</small>
+            </div>
+            <div class="score-input-wrap">
+              <input type="number" class="score-input" id="g4" min="0" max="3" value="0" oninput="update('g4',3)">
+              <span class="score-max">/ 3</span>
+            </div>
+          </div>
+          <div class="error" id="err-g4">Max 3</div>
+
+          <div class="card-total">Deeltotaal Argumentatiestructuur: <span id="tot-g">0</span> / 10</div>
+          <div class="feedback-label">Feedback argumentatiestructuur:</div>
+          <textarea class="feedback-area" id="fb-g" placeholder="Toelichting voor de student..."></textarea>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+const fields = { a1:2,a2:3, b1:2,b2:3,b3:3,b4:2, c1:3,c2:2, d1:15, e1:2,e2:3,e3:2, f1:1,f2:1,f3:1, g1:2,g2:1,g3:3,g4:3 };
+const groups = { a:['a1','a2'], b:['b1','b2','b3','b4'], c:['c1','c2'], d:['d1'], e:['e1','e2','e3'], f:['f1','f2','f3'], g:['g1','g2','g3','g4'] };
+
+function getVal(id) { return Math.min(Math.max(parseFloat(document.getElementById(id).value)||0,0),fields[id]); }
+
+function update(id, max) {
+  const el = document.getElementById(id);
+  const err = document.getElementById('err-'+id);
+  if (parseFloat(el.value) > max) { el.classList.add('over'); err.style.display='block'; }
+  else { el.classList.remove('over'); err.style.display='none'; }
+  recalc();
+}
+
+function recalc() {
+  for (const [grp, ids] of Object.entries(groups)) {
+    document.getElementById('tot-'+grp).textContent = ids.reduce((a,id)=>a+getVal(id),0);
+  }
+  const total = Object.keys(fields).reduce((a,id)=>a+getVal(id),0);
+  document.getElementById('totalScore').textContent = total;
+  document.getElementById('progressFill').style.width = (total/55*100)+'%';
+  const pct = total/55;
+  let g = pct>=0.95?10:pct>=0.88?9:pct>=0.80?8:pct>=0.72?7:pct>=0.63?6:pct>=0.55?5.5:pct>=0.45?5:pct>=0.36?4:pct>=0.27?3:pct>=0.18?2:1;
+  document.getElementById('gradeLabel').textContent = g;
+  document.getElementById('verdict').textContent = g>=5.5?'✅ Voldoende':'❌ Onvoldoende';
+}
+
+function showTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+function resetAll() {
+  if(!confirm('Alle scores en feedback wissen?')) return;
+  Object.keys(fields).forEach(id=>{
+    document.getElementById(id).value=0;
+    document.getElementById(id).classList.remove('over');
+    const e=document.getElementById('err-'+id); if(e) e.style.display='none';
+  });
+  document.querySelectorAll('.feedback-area').forEach(el=>el.value='');
+  document.getElementById('aiResult').style.display='none';
+  recalc();
+}
+
+// ---- AI Nakijk ----
+
+async function runAI() {
+  const type = document.getElementById('inp-type').value.trim();
+  const standpunt = document.getElementById('inp-standpunt').value.trim();
+  const ha = document.getElementById('inp-ha').value.trim();
+  const sa = document.getElementById('inp-sa').value.trim();
+
+  if (!type && !standpunt && !ha && !sa) {
+    alert('Vul eerst het antwoord van de student in.');
+    return;
+  }
+
+  const btn = document.getElementById('aiBtn');
+  const spinner = document.getElementById('spinner');
+  btn.disabled = true;
+  spinner.classList.add('active');
+  document.getElementById('aiResult').style.display = 'none';
+
+  try {
+    const response = await fetch('/.netlify/functions/nakijk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, standpunt, ha, sa })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    showAIResult(result);
+  } catch(err) {
+    alert('Er ging iets mis bij het nakijken: ' + err.message);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    spinner.classList.remove('active');
+  }
+}
+
+function showAIResult(r) {
+  document.getElementById('ai-pts').textContent = r.totaal;
+  document.getElementById('ai-score-header').textContent = r.totaal + ' / 10';
+  document.getElementById('ai-general-fb').textContent = r.algemene_feedback;
+
+  const criteria = [
+    { name: 'Type structuur', score: r.type_score, max: 2, feedback: r.type_feedback },
+    { name: 'Standpunt jurist', score: r.standpunt_score, max: 1, feedback: r.standpunt_feedback },
+    { name: 'Hoofdargumenten (3×)', score: r.ha_score, max: 3, feedback: r.ha_feedback },
+    { name: 'Subargumenten (per HA)', score: r.sa_score, max: 3, feedback: r.sa_feedback },
+  ];
+
+  const grid = document.getElementById('criteria-grid');
+  grid.innerHTML = '';
+  criteria.forEach(c => {
+    const pct = c.score / c.max;
+    const cls = pct >= 1 ? 'pass' : pct >= 0.5 ? 'partial' : 'fail';
+    const icon = pct >= 1 ? '✅' : pct >= 0.5 ? '⚠️' : '❌';
+    grid.innerHTML += `
+      <div class="criterion-card ${cls}">
+        <div class="crit-header">
+          <span class="crit-name">${icon} ${c.name}</span>
+          <span class="crit-score">${c.score} / ${c.max}</span>
+        </div>
+        <div class="crit-feedback">${c.feedback}</div>
+      </div>`;
+  });
+
+  document.getElementById('aiResult').style.display = 'block';
+  window._aiResult = r;
+}
+
+function applyAIScore() {
+  const r = window._aiResult;
+  if (!r) return;
+  document.getElementById('g1').value = r.type_score;
+  document.getElementById('g2').value = r.standpunt_score;
+  document.getElementById('g3').value = r.ha_score;
+  document.getElementById('g4').value = r.sa_score;
+  document.getElementById('fb-g').value =
+    `[AI-beoordeling]\n${r.algemene_feedback}\n\n` +
+    `Type structuur: ${r.type_feedback}\n` +
+    `Standpunt: ${r.standpunt_feedback}\n` +
+    `Hoofdargumenten: ${r.ha_feedback}\n` +
+    `Subargumenten: ${r.sa_feedback}`;
+  ['g1','g2','g3','g4'].forEach(id => update(id, fields[id]));
+  alert('AI-scores overgenomen! Controleer en pas zo nodig handmatig aan.');
+}
+
+recalc();
+</script>
+</body>
+</html>
